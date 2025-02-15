@@ -76,7 +76,7 @@ export default function ProductGrid_CosmosDB() {
               height={300}
               unoptimized
               onLoadingComplete={async () => {
-                const response = await fetch(`${api_url}/api/imageProxy?id=${product.id}`);  
+                const response = await fetch(`/api/image-proxy?id=${product.id}`, { cache: 'force-cache' });  
                 const data = await response.json();              
                 setImageData((prevData) => ({
                   ...prevData,
