@@ -38,7 +38,7 @@ export default function CartPage () {
                 height={96}
                 unoptimized
                 onLoadingComplete={async () => {
-                  const response = await fetch(`${api_url}/api/imageProxy?id=${item.id}`);  
+                  const response = await fetch(`/api/image-proxy?id=${item.id}`);  
                   const data = await response.json();              
                   setImageData((prevData) => ({
                     ...prevData,
