@@ -1,8 +1,5 @@
-using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.Configuration;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using System.Diagnostics;
+using Microsoft.Azure.Cosmos;
 
 public interface IProductsService
 {
@@ -25,11 +22,13 @@ public class ProductsService : IProductsService
     public async Task<List<Product>> GetProductsAsync()
     {
         var container = _cosmosClient.GetContainer(_databaseName, _productsContainerName);
-        var query = new QueryDefinition("SELECT * FROM c");
+        var query = new QueryDefinition(
+            "SELECT c.id, c.type, c.brand, c.name, c.description, c.price from c"
+        );
 
         Stopwatch stopwatch = new();
         stopwatch.Restart();
-        
+
         var iterator = container.GetItemQueryIterator<Product>(query);
         var products = new List<Product>();
 

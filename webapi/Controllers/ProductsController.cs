@@ -1,7 +1,6 @@
-using Microsoft.Azure.Cosmos;
-using Azure.Identity;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Cosmos;
 
 namespace webapi.Controllers
 {
@@ -13,12 +12,15 @@ namespace webapi.Controllers
         private readonly CosmosClient _cosmosClient;
         private readonly IProductsService _productsService;
 
-        public ProductsController(ILogger<ProductsController> logger, IConfiguration configuration, IProductsService productsService)
+        public ProductsController(
+            ILogger<ProductsController> logger,
+            IConfiguration configuration,
+            IProductsService productsService
+        )
         {
             _logger = logger;
             _cosmosClient = CosmosDbHelper.InitializeCosmosClient(configuration);
-        _productsService = productsService;
-
+            _productsService = productsService;
         }
 
         [HttpGet]
@@ -31,7 +33,7 @@ namespace webapi.Controllers
             stopwatch.Stop();
             var duration = stopwatch.ElapsedMilliseconds;
 
-            return Ok(new { duration, data = products  });
+            return Ok(new { duration, data = products });
         }
     }
 }

@@ -14,12 +14,13 @@ import { v4 as uuidv4 } from 'uuid'; // Import the uuid library
 
 const prefix = "components/ProductGrid_CosmosDB.tsx";
 
+
 export default function ProductGrid_CosmosDB() {
   const { addItem } = useCart();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [imageUrls, setImageUrls] = useState<{ [key: string]: string }>({});
+  const [imageData, setImageData] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     async function fetchProducts() {
@@ -68,12 +69,20 @@ export default function ProductGrid_CosmosDB() {
         <div key={product.id} className="group relative">
           <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-200">
             <Image
-              src={product.image}
+              src={imageData[product.id] || '/placeholder-300x300.png'}
               alt={product.name}
               className="h-full w-full object-cover object-center group-hover:opacity-75"
               width={300}
               height={300}
               unoptimized
+              onLoadingComplete={async () => {
+                const response = await fetch(`${api_url}/api/imageProxy?id=${product.id}`);  
+                const data = await response.json();              
+                setImageData((prevData) => ({
+                  ...prevData,
+                  [product.id]: data.src,
+                }));
+              }}
             />
           </div>
           <div className="mt-4 flex justify-between">

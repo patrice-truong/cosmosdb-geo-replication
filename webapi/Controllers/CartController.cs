@@ -1,9 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using System.Diagnostics;
-using System.Threading.Tasks;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -33,7 +30,7 @@ public class CartController : ControllerBase
         return Ok(new { duration, data = cart });
     }
 
-    
+
     [HttpPost()]
     public async Task<IActionResult> StoreCart([FromBody] Cart cart)
     {

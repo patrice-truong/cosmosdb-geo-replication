@@ -26,7 +26,7 @@ cache
 .angular
 .env
 .venv
-
+no_commit
 
 Tags/
 tmp/

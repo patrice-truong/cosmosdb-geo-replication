@@ -12,6 +12,7 @@ Products added to the shopping cart in the East US 2 region automatically appear
 ## Azure Architecture
 
 - 2 virtual machines, one in East US 2, the other one in Australia East
+- An Azure Storage account to store product images
 - an Azure Cosmos DB NoSQL database that stores the product catalog
 
 ![Architecture Diagram](assets/architecture.png)
@@ -20,7 +21,8 @@ Products added to the shopping cart in the East US 2 region automatically appear
 
 - [Benefits of global distribution in Azure Cosmos DB](https://learn.microsoft.com/en-us/azure/cosmos-db/distribute-data-globally)
 - [Create an Azure Cosmos DB for NoSQL account](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/quickstart-portal)
-- [Create a Windows virtual machine in the Azure portal](https://learn.microsoft.com/en-us/azure/virtual-machines/windows/quick-create-portal)
+- [Create an Azure Storage account](https://learn.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal)
+- [Create a Windows virtual machine](https://learn.microsoft.com/en-us/azure/virtual-machines/windows/quick-create-portal)
 - [Windows execution policies](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.5)
 
 ## Step-by-step walkthrough
@@ -91,6 +93,25 @@ In the Azure portal, create an Azure Cosmos DB for NoSQL account.
 Make sure that the partition key is **_"/userName"_** (the partition key is case-sensitive)
 
 ![Cosmos DB - Create database](assets/cosmos-create-carts.png)
+
+**Storage account**
+
+1. Create a storage account to store the product images
+
+For more details, refer to the documentation: https://learn.microsoft.com/en-us/azure/storage/common/storage-account-create?tabs=azure-portal
+
+![Storage - Basics](assets/storage-basics.png)
+
+![Storage - Advanced](assets/storage-advanced.png)
+
+![Storage - Networking](assets/storage-networking.png)
+
+![Storage - Data protection](assets/storage-data-protection.png)
+
+![Storage - Encryption](assets/storage-encryption.png)
+
+![Storage - Validation](assets/storage-validation.png)
+
 
 **Windows 11 Virtual machines creation**
 
@@ -177,11 +198,13 @@ npm install  --legacy-peer-deps
 11. In the nextjs folder, create and configure an .env file with the following values:
 
 ```sh
-AZURE_COSMOSDB_NOSQL_ENDPOINT=https://cosmos-multi-regions-write-6p98v.azure.com:443/
+AZURE_COSMOSDB_NOSQL_ENDPOINT=https://<cosmosdb_account_name>.documents.azure.com:443/
 AZURE_COSMOSDB_NOSQL_DATABASE=eshop
 AZURE_COSMOSDB_NOSQL_PRODUCTS_CONTAINER=products
 AZURE_COSMOSDB_NOSQL_CARTS_CONTAINER=carts
 PREFERRED_LOCATIONS=East US 2,Australia East
+AZURE_STORAGE_ACCOUNT_NAME=<storage_account_name>
+AZURE_STORAGE_CONTAINER_NAME=<container_name>
 ```
 
 12. Get your tenant ID. The tenant ID can be retrieved with this command:
@@ -196,11 +219,14 @@ az account show --query tenantId -o tsv
 ```sh
 {
   "CosmosDb": {
-    "Endpoint": "https://cosmos-multi-regions-write-6p98v.documents.azure.com:443/",
+    "Endpoint": "https:/<cosmosdb_account_name>.documents.azure.com:443/",
     "TenantId": "<tenant_id>",
     "DatabaseName": "eshop",
     "ProductsContainerName": "products",
     "CartsContainerName": "carts"
+  },
+  "AzureBlobStorage": {
+    "AccountName": "<storage_account_name>"
   }
 }
 ```
@@ -225,16 +251,49 @@ $PrincipalId = "<principal-id>"   # id of the virtual machine in Entra ID
 
 ![Cosmos DB - RBAC](assets/cosmos-rbac.png)
 
-16. In order for the application in the Australia VM to read data from the closest Cosmos DB replica, we need to make a few changes, **on the "Australia East" virtual machine only**:
+16. Allow your virtual machine to access the storage account
+
+- In the Azure portal, goto your storage account
+- Select Access Control (IAM) in the menu
+
+![Storage - Access Control](assets/storage-access-control.png)
+- Click on "Add role assignment"
+- In the filter textbox, type "Storage Blob Data Contributor"
+
+![Storage - Blob Data contributor](assets/storage-blob-data-contributor.png)
+- Click on "Members"
+- Select "Managed Identity"
+- In the listbox, select "Virtual machines"
+- Select the name of your virutal machine
+
+![Storage - Role assignment](assets/storage-role-assignment.png)
+
+- Click on the "Select" button
+- Click on "Review and assign"
+
+![Storage - Role assignment](assets/storage-review.png)
+
+17. Create a container and copy the content of the "azure-storage" folder to your storage account
+
+![Storage - Create container](assets/storage-create-container.png)
+
+![Storage - Upload files](assets/storage-upload-files.png)
+
+![Storage - Files uploaded](assets/storage-files-uploaded.png)
+
+
+18. In order for the application in the Australia VM to read data from the closest Cosmos DB replica, we need to make a few changes, **on the "Australia East" virtual machine only**:
 
 - change the order of the preferred regions in the nextjs/.env file. Have Australia East appear first
 
 ```sh
-AZURE_COSMOSDB_NOSQL_ENDPOINT=https://cosmos-multi-regions-write-6p98v.azure.com:443/
+AZURE_COSMOSDB_NOSQL_ENDPOINT=https://<cosmosdb_account_name>.documents.azure.com:443/
 AZURE_COSMOSDB_NOSQL_DATABASE=eshop
 AZURE_COSMOSDB_NOSQL_PRODUCTS_CONTAINER=products
 AZURE_COSMOSDB_NOSQL_CARTS_CONTAINER=carts
 PREFERRED_LOCATIONS=Australia East, East US 2
+AZURE_STORAGE_ACCOUNT_NAME=<storage_account_name>
+AZURE_STORAGE_CONTAINER_NAME=<container_name>
 ```
 
 - change the order of the preferred regions in the webapi/Helpers/CosmosDBHelper.cs file. Have Australia East appear first
@@ -272,7 +331,7 @@ In this section, we'll read the products catalog from the populate/cosmosDB/cata
 ```json
 {
   "CosmosDb": {
-    "Endpoint": "https://<cosmosdb_account>.documents.azure.com:443/",
+    "Endpoint": "https://<cosmosdb_account_name>.documents.azure.com:443/",
     "TenantId": "<tenant_id>",
     "DatabaseName": "eshop",
     "ContainerName": "products",
