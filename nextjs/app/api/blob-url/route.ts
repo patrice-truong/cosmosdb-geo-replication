@@ -32,14 +32,15 @@ export async function GET (request: Request) {
 
     // Download blob content
     const downloadResponse = await blobClient.download()
-    const chunks = []
 
-    // @ts-ignore
-    for await (const chunk of downloadResponse.readableStreamBody) {
+    const chunks: Uint8Array[] = []
+
+    for await (const chunk of downloadResponse.readableStreamBody as AsyncIterable<Uint8Array>) {
       chunks.push(chunk)
     }
 
     const buffer = Buffer.concat(chunks)
+
     const base64String = `data:image/webp;base64,${buffer.toString('base64')}`
 
     return NextResponse.json({ url: base64String })
