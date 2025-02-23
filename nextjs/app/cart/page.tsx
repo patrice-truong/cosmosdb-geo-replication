@@ -4,13 +4,13 @@ import { Minus, Plus, Trash2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
-import { api_url } from '@/models/constants';
+import { api_url } from '@/models/constants'
 import { useCart } from '@/context/CartContext'
 import { useState } from 'react'
 
 export default function CartPage () {
   const { items, removeItem, updateQuantity } = useCart()
-  const [imageData, setImageData] = useState<{ [key: string]: string }>({});
+  const [imageData, setImageData] = useState<{ [key: string]: string }>({})
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
@@ -38,12 +38,17 @@ export default function CartPage () {
                 height={96}
                 unoptimized
                 onLoadingComplete={async () => {
-                  const response = await fetch(`/api/image-proxy?id=${item.id}`);  
-                  const data = await response.json();              
-                  setImageData((prevData) => ({
+                  const response = await fetch(
+                    `/api/blob-url?blob=${item.id}.webp`,
+                    {
+                      cache: 'force-cache'
+                    }
+                  )
+                  const data = await response.json()
+                  setImageData(prevData => ({
                     ...prevData,
-                    [item.id]: data.src,
-                  }));
+                    [item.id]: data.url
+                  }))
                 }}
               />
               <div className='flex-1'>

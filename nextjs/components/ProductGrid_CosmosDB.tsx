@@ -1,105 +1,117 @@
 // components/ProductGrid_CosmosDB.tsx
 
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react'
 
-import { Button } from '@/components/ui/button';
-import Image from 'next/image';
-import { Product } from '@/models/product';
-import { api_url } from '@/models/constants';
-import { useCart } from '@/context/CartContext';
-import { useRouter } from 'next/navigation';
-import { v4 as uuidv4 } from 'uuid'; // Import the uuid library
+import { Button } from '@/components/ui/button'
+import Image from 'next/image'
+import { Product } from '@/models/product'
+import { api_url } from '@/models/constants'
+import { useCart } from '@/context/CartContext'
+import { useRouter } from 'next/navigation'
+import { v4 as uuidv4 } from 'uuid' // Import the uuid library
 
-const prefix = "components/ProductGrid_CosmosDB.tsx";
+const prefix = 'components/ProductGrid_CosmosDB.tsx'
 
-
-export default function ProductGrid_CosmosDB() {
-  const { addItem } = useCart();
-  const router = useRouter();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [imageData, setImageData] = useState<{ [key: string]: string }>({});
+export default function ProductGrid_CosmosDB () {
+  const { addItem } = useCart()
+  const router = useRouter()
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [imageUrls, setImageUrls] = useState<{ [key: string]: string }>({})
 
   useEffect(() => {
-    async function fetchProducts() {
+    async function fetchImageUrl (id: string) {
       try {
-        const token = uuidv4(); // Generate a GUID as a string
-        const response = await fetch(`${api_url}/api/products?token=${token}`);        
-        const result = await response.json();
-        console.log(`[${prefix}] fetchProducts: ${result.duration} ms `);
-        setProducts(result.data);        
+        const response = await fetch(`/api/blob-url?blob=${id}.webp`, {
+          cache: 'force-cache'
+        })
+        const data = await response.json()
+        if (data.url) {
+          setImageUrls(prev => ({
+            ...prev,
+            [id]: data.url // This will now be a base64 string
+          }))
+        }
       } catch (error) {
-        console.error('Error fetching products:', error);
-      } finally {
-        setLoading(false);
+        console.error('Error fetching image URL:', error)
       }
     }
 
-    fetchProducts();
-  }, []);
+    async function fetchProducts () {
+      try {
+        const token = uuidv4()
+        const response = await fetch(`${api_url}/api/products?token=${token}`)
+        const result = await response.json()
+        console.log(`[${prefix}] fetchProducts: ${result.duration} ms `)
+        setProducts(result.data)
+
+        // Fetch image URLs for all products
+        for (const product of result.data) {
+          fetchImageUrl(product.id)
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [])
 
   const handleAddToCart = (product: Product) => {
     const cartItem = {
       ...product,
-      id: Number(product.id), // Convert id to number
-    };
-    addItem(cartItem);
-    router.push('/cart');
-  };
+      id: Number(product.id) // Convert id to number
+    }
+    addItem(cartItem)
+    router.push('/cart')
+  }
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8">
+      <div className='grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8'>
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="animate-pulse">
-            <div className="aspect-w-1 aspect-h-1 w-full bg-gray-200 rounded-lg mb-4" />
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-            <div className="h-4 bg-gray-200 rounded w-1/4" />
+          <div key={i} className='animate-pulse'>
+            <div className='aspect-w-1 aspect-h-1 w-full bg-gray-200 rounded-lg mb-4' />
+            <div className='h-4 bg-gray-200 rounded w-3/4 mb-2' />
+            <div className='h-4 bg-gray-200 rounded w-1/4' />
           </div>
         ))}
       </div>
-    );
+    )
   }
 
   return (
-    <div className="grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8">
-      {products.map((product) => (
-        <div key={product.id} className="group relative">
-          <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-200">
+    <div className='grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8'>
+      {products.map(product => (
+        <div key={product.id} className='group relative'>
+          <div className='aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-200'>
             <Image
-              src={imageData[product.id] || '/placeholder-300x300.png'}
+              src={imageUrls[product.id] || '/placeholder-300x300.png'}
               alt={product.name}
-              className="h-full w-full object-cover object-center group-hover:opacity-75"
+              className='h-full w-full object-cover object-center group-hover:opacity-75'
               width={300}
               height={300}
               unoptimized
-              onLoadingComplete={async () => {
-                const response = await fetch(`/api/image-proxy?id=${product.id}`, { cache: 'force-cache' });  
-                const data = await response.json();              
-                setImageData((prevData) => ({
-                  ...prevData,
-                  [product.id]: data.src,
-                }));
-              }}
             />
           </div>
-          <div className="mt-4 flex justify-between">
+          <div className='mt-4 flex justify-between'>
             <div>
-              <h3 className="text-sm text-gray-700">{product.name}</h3>
-              <p className="mt-1 text-sm text-gray-500">${product.price}</p>
+              <h3 className='text-sm text-gray-700'>{product.name}</h3>
+              <p className='mt-1 text-sm text-gray-500'>${product.price}</p>
             </div>
           </div>
           <Button
             onClick={() => handleAddToCart(product)}
-            className="mt-4 w-full"
+            className='mt-4 w-full'
           >
             Add to Cart
           </Button>
         </div>
       ))}
     </div>
-  );
+  )
 }
-
