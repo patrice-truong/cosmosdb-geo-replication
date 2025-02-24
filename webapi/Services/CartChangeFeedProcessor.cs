@@ -45,7 +45,7 @@ public class CartChangeFeedProcessor : IHostedService
             .GetChangeFeedProcessorBuilder<Cart>("cartProcessor", HandleChangesAsync)
             .WithInstanceName("cartProcessorInstance")
             .WithLeaseContainer(_leaseContainer)
-            .WithPollInterval(TimeSpan.FromMilliseconds(100))
+            .WithPollInterval(TimeSpan.FromMilliseconds(200))
             .WithMaxItems(100)
             .Build();
 

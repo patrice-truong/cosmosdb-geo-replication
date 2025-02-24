@@ -20,13 +20,13 @@ io.on('connection', socket => {
   socket.on('cartChange', data => {
     try {
       console.log('Received cartChange:', data)
-      // Only broadcast if it's from change feed
+      // Send acknowledgment immediately
+      socket.emit('ack', { success: true, data })
+      
+      // Then broadcast the update
       if (data.isChangeFeed) {
         io.emit('cartUpdate', data)
       }
-
-      // Send acknowledgment
-      socket.emit('ack', { success: true, data })
     } catch (error) {
       console.error('Error in cartChange:', error)
       socket.emit('ack', {

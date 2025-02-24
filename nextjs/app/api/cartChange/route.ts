@@ -21,26 +21,30 @@ export async function POST (request: Request) {
         socket.emit('cartChange', data)
 
         socket.on('ack', response => {
-          hasResponded = true
-          socket.disconnect()
-          resolve(response)
+          if (!hasResponded) {
+            hasResponded = true
+            socket.disconnect()
+            resolve(response)
+          }
         })
       })
 
       socket.on('error', error => {
         if (!hasResponded) {
+          hasResponded = true
           socket.disconnect()
           reject(error)
         }
       })
-
-      setTimeout(() => {
-        if (!hasResponded) {
-          socket.disconnect()
-          reject(new Error('Socket connection timeout'))
-        }
-      }, 10000)
-    })
+    // Increase timeout to 30 seconds
+    setTimeout(() => {
+      if (!hasResponded) {
+        hasResponded = true
+        socket.disconnect()
+        reject(new Error('Socket connection timeout'))
+      }
+    }, 30000) // 30 seconds instead of 10
+  })
     return NextResponse.json({ success: true, data }, { status: 200 })
   } catch (error) {
     console.error('Cart change error:', error)
