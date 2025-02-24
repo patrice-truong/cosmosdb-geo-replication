@@ -1,12 +1,6 @@
 using Microsoft.Azure.Cosmos;
 using Newtonsoft.Json;
 
-public interface ICartService
-{
-    Task<Cart> GetCartAsync(string userName);
-    Task StoreCartAsync(Cart cart);
-}
-
 public class CartService : ICartService
 {
     private readonly CosmosClient _cosmosClient;
@@ -23,28 +17,32 @@ public class CartService : ICartService
     public async Task<Cart> GetCartAsync(string userName)
     {
         var container = _cosmosClient.GetContainer(_databaseName, _cartsContainerName);
-        var query = new QueryDefinition("SELECT * FROM c WHERE c.userName = @userName")
-            .WithParameter("@userName", userName);
-        var iterator = container.GetItemQueryIterator<Cart>(query);
-        var carts = new List<Cart>();
-
-        while (iterator.HasMoreResults)
+        try
         {
-            var response = await iterator.ReadNextAsync();
-            carts.AddRange(response);
+            var response = await container.ReadItemAsync<Cart>(userName, new PartitionKey(userName));
+            return response.Resource;
         }
-
-        return carts.FirstOrDefault();
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
     }
 
-    public async Task StoreCartAsync(Cart cart)
+    public async Task<Cart> CreateOrUpdateCartAsync(Cart cart)
     {
         var container = _cosmosClient.GetContainer(_databaseName, _cartsContainerName);
         if(string.IsNullOrEmpty(cart.id))
         {
-            cart.id = Constants.UserName;;
+            cart.id = Constants.UserName;
         }
-        Console.WriteLine(JsonConvert.SerializeObject(cart));
-        await container.UpsertItemAsync(cart, new PartitionKey(cart.userName));
+        cart.userName = cart.id;
+        var response = await container.UpsertItemAsync(cart, new PartitionKey(cart.userName));
+        return response.Resource;
+    }
+
+    public async Task DeleteCartAsync(string userName)
+    {
+        var container = _cosmosClient.GetContainer(_databaseName, _cartsContainerName);
+        await container.DeleteItemAsync<Cart>(userName, new PartitionKey(userName));
     }
 }

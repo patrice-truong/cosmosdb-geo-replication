@@ -4,6 +4,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+// Add before builder.Services.AddControllers();
+builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -20,7 +22,6 @@ builder.Services.AddCors(options =>
                    .AllowAnyMethod();
         });
 });
-
 // Register CosmosClient
 builder.Services.AddSingleton<CosmosClient>(serviceProvider =>
 {
@@ -28,9 +29,9 @@ builder.Services.AddSingleton<CosmosClient>(serviceProvider =>
     return CosmosDbHelper.InitializeCosmosClient(configuration);
 });
 
-// Register services
-builder.Services.AddSingleton<IProductsService, ProductsService>();
-builder.Services.AddSingleton<ICartService, CartService>();
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IProductsService, ProductsService>();
+builder.Services.AddHostedService<CartChangeFeedProcessor>();
 
 var app = builder.Build();
 

@@ -1,6 +1,6 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
-using System.Diagnostics;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -10,7 +10,11 @@ public class CartController : ControllerBase
     private readonly CosmosClient _cosmosClient;
     private readonly ICartService _cartService;
 
-    public CartController(ILogger<CartController> logger, IConfiguration configuration, ICartService cartService)
+    public CartController(
+        ILogger<CartController> logger,
+        IConfiguration configuration,
+        ICartService cartService
+    )
     {
         _logger = logger;
         _cosmosClient = CosmosDbHelper.InitializeCosmosClient(configuration);
@@ -30,13 +34,21 @@ public class CartController : ControllerBase
         return Ok(new { duration, data = cart });
     }
 
-
     [HttpPost()]
     public async Task<IActionResult> StoreCart([FromBody] Cart cart)
     {
-        var stopwatch = Stopwatch.StartNew();
+        _logger.LogInformation(
+            $"Received cart update. Headers: {string.Join(", ", Request.Headers.Select(h => $"{h.Key}={h.Value.ToString()}"))}"
+        );
 
-        await _cartService.StoreCartAsync(cart);
+        if (Request.Headers.ContainsKey("X-Change-Feed-Operation"))
+        {
+            _logger.LogInformation("Skipping change feed originated request");
+            return Ok();
+        }
+
+        var stopwatch = Stopwatch.StartNew();
+        await _cartService.CreateOrUpdateCartAsync(cart);
 
         stopwatch.Stop();
         var duration = stopwatch.ElapsedMilliseconds;

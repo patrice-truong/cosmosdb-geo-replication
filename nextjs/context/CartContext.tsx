@@ -2,28 +2,30 @@
 
 export const dynamic = 'force-dynamic' // Ensure dynamic rendering
 
-import { api_url, userName } from '@/models/constants'
+import { api_url, socket_url, userName } from '@/models/constants'
 import { createContext, useContext, useEffect, useState } from 'react'
 
 import { Cart } from '@/models/cart'
 import { CartContextType } from '@/models/cartContextType'
 import { CartItem } from '@/models/cartItem'
+import { io } from 'socket.io-client'
 
 export const CartContext = createContext<CartContextType | undefined>(undefined)
 const prefix = '/context/CartContext.tsx'
 
 export function CartProvider ({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
+  const [socket, setSocket] = useState<any>(null)
+  const [isSocketUpdate, setIsSocketUpdate] = useState(false)
 
   useEffect(() => {
     async function loadCart () {
       try {
-        // const savedCart = localStorage.getItem('cart')
         const savedCart = await loadCartFromCosmosDB(userName)
-        if (savedCart) {
+        if (savedCart && !isSocketUpdate) {
+          // Only update if not from socket
           const items = savedCart.data.items
-          console.log(`[${prefix}::loadCart]`)
-          console.log(items)
+          console.log(`[${prefix}::loadCart]`, items)
           setItems(items)
         }
       } catch (error) {
@@ -32,26 +34,70 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
     }
 
     loadCart()
-  }, [])
+  }, [isSocketUpdate])
 
   useEffect(() => {
-    async function storeCart () {
+    const socketInstance = io(
+      socket_url,
+
+      {
+        path: '/api/socket',
+        addTrailingSlash: false
+      }
+    )
+
+    socketInstance.on('connect', () => {
+      console.log('Connected')
+    })
+
+    socketInstance.on('cartUpdate', async data => {
+      console.log('Cart update received from socket:', data)
+      if (data.userName === userName) {
+        setIsSocketUpdate(true) // Set flag before updating items
+        setItems(data.items)
+      }
+    })
+
+    socketInstance.on('disconnect', () => {
+      console.log('Disconnected - attempting reconnect')
+      socketInstance.connect()
+    })
+
+    socketInstance.on('connect_error', async err => {
+      console.log(`connect_error due to ${err.message}`)
+      await fetch('/api/socket')
+    })
+
+    setSocket(socketInstance)
+
+    // Cleanup function to disconnect socket when component unmounts
+    return () => {
+      socketInstance.disconnect()
+    }
+  }, []) // Add items as dependency
+
+  useEffect(() => {
+    console.log('Items state changed:', items)
+
+    const storeCart = async () => {
       try {
         const cart: Cart = {
           userName: userName,
           items: items
         }
-
-        // localStorage.setItem('cart', JSON.stringify(cart))
-        await storeCartInCosmosDB(cart)
+        // Only store if not a socket update
+        if (!isSocketUpdate) {
+          await storeCartInCosmosDB(cart)
+        }
       } catch (error) {
-        console.error('Error fetching products:', error)
-      } finally {
+        console.error('Error storing cart:', error)
       }
     }
 
-    storeCart()
-  }, [items])
+    if (items.length > 0) {
+      storeCart()
+    }
+  }, [items, isSocketUpdate])
 
   const addItem = (newItem: Omit<CartItem, 'quantity'>) => {
     setItems(currentItems => {
@@ -66,21 +112,17 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
       return [...currentItems, { ...newItem, quantity: 1 }]
     })
   }
-
   const removeItem = (id: number) => {
     setItems(currentItems => currentItems.filter(item => item.id !== id))
   }
-
   const updateQuantity = (id: number, quantity: number) => {
     setItems(currentItems =>
       currentItems.map(item => (item.id === id ? { ...item, quantity } : item))
     )
   }
-
   const clearCart = () => {
     setItems([])
   }
-
   // load cart from Cosmos DB
   const loadCartFromCosmosDB = async (userName: string) => {
     try {
@@ -93,15 +135,15 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
       return error
     }
   }
-
   // Function to store cart in Cosmos DB
   const storeCartInCosmosDB = async (cart: Cart) => {
     try {
       console.log(`[${prefix}::storeCartInCosmosDB] ${JSON.stringify(cart)}`)
       const response = await fetch(`${api_url}/api/cart`, {
-        method: 'POST', // HTTP method
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json' // Specify JSON content
+          'Content-Type': 'application/json',
+          'X-Client-Update': 'true' // Add this header to identify client updates
         },
         body: JSON.stringify(cart)
       })
@@ -109,7 +151,6 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
       console.error('Error storing cart in Cosmos DB:', error)
     }
   }
-
   return (
     <CartContext.Provider
       value={{ items, addItem, removeItem, updateQuantity, clearCart }}
