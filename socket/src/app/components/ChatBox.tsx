@@ -13,7 +13,11 @@ export default function ChatBox () {
   useEffect(() => {
     const host = '127.0.0.1'
     const port = 8000
-    const socketInstance = io(`http://${host}:${port}`)
+    const socketInstance = io('http://172.172.95.148:8000', {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
+    })
     setSocket(socketInstance)
 
     socketInstance.on('test', data => {

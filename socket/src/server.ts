@@ -2,8 +2,8 @@ import { Server } from 'socket.io'
 import { Socket } from 'socket.io'
 import { createServer } from 'http'
 
-const host = '127.0.0.1'
-const port = 8000
+const host = process.env.SOCKET_HOST || '0.0.0.0'
+const port = parseInt(process.env.SOCKET_PORT || '8000')
 
 console.log('Initializing server...')
 
@@ -11,8 +11,11 @@ const httpServer = createServer()
 const io = new Server(httpServer, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST']
-  }
+    methods: ['GET', 'POST'],
+    credentials: true
+  },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true
 })
 
 console.log('Socket.IO server created')
