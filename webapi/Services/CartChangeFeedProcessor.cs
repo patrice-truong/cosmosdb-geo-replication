@@ -75,15 +75,11 @@ public class CartChangeFeedProcessor : IHostedService
                     userName = cart.userName,
                     items = cart.items,
                 };
-
-                var response = await _httpClient.PostAsJsonAsync(
+                Console.WriteLine($"Change detected: {JsonConvert.SerializeObject(cart)}");
+                await _httpClient.PostAsJsonAsync(
                     "http://localhost:3000/api/cartChange",
                     payload,
                     cancellationToken
-                );
-                response.EnsureSuccessStatusCode();
-                Console.WriteLine(
-                    $"Cart change notification sent successfully: {JsonConvert.SerializeObject(cart)}"
                 );
             }
             catch (Exception ex)

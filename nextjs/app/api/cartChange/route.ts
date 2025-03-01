@@ -5,6 +5,7 @@ import { socket_url } from '@/models/constants'
 export async function POST (request: Request) {
   try {
     const data = await request.json()
+    console.log('[cartChange event received]:', JSON.stringify(data))
 
     const socket = io(socket_url, {
       path: '/api/socket'
@@ -18,15 +19,17 @@ export async function POST (request: Request) {
       let hasResponded = false
 
       socket.on('connect', () => {
+        console.log(
+          '[socket connect] Sending cart change:',
+          JSON.stringify(data)
+        )
         socket.emit('cartChange', data)
-
-        socket.on('ack', response => {
-          if (!hasResponded) {
-            hasResponded = true
-            socket.disconnect()
-            resolve(response)
-          }
-        })
+        // Resolve immediately after sending
+        if (!hasResponded) {
+          hasResponded = true
+          socket.disconnect()
+          resolve({ sent: true })
+        }
       })
 
       socket.on('error', error => {
@@ -36,15 +39,15 @@ export async function POST (request: Request) {
           reject(error)
         }
       })
-    // Increase timeout to 30 seconds
-    setTimeout(() => {
-      if (!hasResponded) {
-        hasResponded = true
-        socket.disconnect()
-        reject(new Error('Socket connection timeout'))
-      }
-    }, 30000) // 30 seconds instead of 10
-  })
+      // Increase timeout to 30 seconds
+      setTimeout(() => {
+        if (!hasResponded) {
+          hasResponded = true
+          socket.disconnect()
+          reject(new Error('Socket connection timeout'))
+        }
+      }, 30000) // 30 seconds instead of 10
+    })
     return NextResponse.json({ success: true, data }, { status: 200 })
   } catch (error) {
     console.error('Cart change error:', error)

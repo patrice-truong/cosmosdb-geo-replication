@@ -1,3 +1,4 @@
+// app/context/CartContext.tsx
 'use client'
 
 export const dynamic = 'force-dynamic' // Ensure dynamic rendering
@@ -93,10 +94,8 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
         console.error('Error storing cart:', error)
       }
     }
-
-    if (items.length > 0) {
-      storeCart()
-    }
+    // Remove the items.length check to allow empty cart updates
+    storeCart()
   }, [items, isSocketUpdate])
 
   const addItem = (newItem: Omit<CartItem, 'quantity'>) => {
