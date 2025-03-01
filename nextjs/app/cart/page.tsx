@@ -1,3 +1,4 @@
+// app/cart/page.tsx
 'use client'
 
 import { Minus, Plus, Trash2 } from 'lucide-react'
@@ -58,9 +59,14 @@ export default function CartPage () {
                   <Button
                     variant='outline'
                     size='icon'
-                    onClick={() =>
-                      updateQuantity(item.id, Math.max(0, item.quantity - 1))
-                    }
+                    onClick={() => {
+                      const newQuantity = Math.max(0, item.quantity - 1)
+                      if (newQuantity === 0) {
+                        removeItem(item.id)
+                      } else {
+                        updateQuantity(item.id, newQuantity)
+                      }
+                    }}
                   >
                     <Minus className='h-4 w-4' />
                   </Button>
@@ -75,7 +81,10 @@ export default function CartPage () {
                   <Button
                     variant='destructive'
                     size='icon'
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => {
+                      console.log('Removing item:', item.id)
+                      removeItem(item.id)
+                    }}
                   >
                     <Trash2 className='h-4 w-4' />
                   </Button>

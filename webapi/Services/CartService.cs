@@ -1,3 +1,5 @@
+// Services/CartService.cs
+
 using Microsoft.Azure.Cosmos;
 using Newtonsoft.Json;
 
@@ -19,7 +21,10 @@ public class CartService : ICartService
         var container = _cosmosClient.GetContainer(_databaseName, _cartsContainerName);
         try
         {
-            var response = await container.ReadItemAsync<Cart>(userName, new PartitionKey(userName));
+            var response = await container.ReadItemAsync<Cart>(
+                userName,
+                new PartitionKey(userName)
+            );
             return response.Resource;
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -31,7 +36,7 @@ public class CartService : ICartService
     public async Task<Cart> CreateOrUpdateCartAsync(Cart cart)
     {
         var container = _cosmosClient.GetContainer(_databaseName, _cartsContainerName);
-        if(string.IsNullOrEmpty(cart.id))
+        if (string.IsNullOrEmpty(cart.id))
         {
             cart.id = Constants.UserName;
         }

@@ -1,14 +1,15 @@
-// app/api/cartChange/route.ts
+// app/api/cartIsEmpty/route.ts
 
 import { NextResponse } from 'next/server'
 import { io } from 'socket.io-client'
 import { socket_url } from '@/models/constants'
 
-console.log('[cartChange] socket_url=' + socket_url)
+console.log('[cartIsEmpty] socket_url=' + socket_url)
+
 export async function POST (request: Request) {
   try {
     const data = await request.json()
-    console.log('[cartChange event received]:', JSON.stringify(data))
+    console.log('[cartEmpty event received]:', JSON.stringify(data))
 
     const socket = io(socket_url, {
       path: '/api/socket'
@@ -23,10 +24,10 @@ export async function POST (request: Request) {
 
       socket.on('connect', () => {
         console.log(
-          '[socket connect] Sending cart change:',
+          '[socket connect] Sending cart deleted:',
           JSON.stringify(data)
         )
-        socket.emit('cartChange', data)
+        socket.emit('cartEmpty', data)
         // Resolve immediately after sending
         if (!hasResponded) {
           hasResponded = true
@@ -49,13 +50,13 @@ export async function POST (request: Request) {
           socket.disconnect()
           reject(new Error('Socket connection timeout'))
         }
-      }, 30000) // 30 seconds instead of 10
+      }, 30000)
     })
     return NextResponse.json({ success: true, data }, { status: 200 })
   } catch (error) {
-    console.error('Cart change error:', error)
+    console.error('Cart deleted error:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to process cart change' },
+      { success: false, error: 'Failed to process cart deletion' },
       { status: 500 }
     )
   }

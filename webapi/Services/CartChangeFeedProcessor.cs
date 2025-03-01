@@ -1,3 +1,5 @@
+// Services/CartChangeFeedProcessor.cs
+
 using System.Net.Http.Json;
 using Microsoft.Azure.Cosmos;
 using Newtonsoft.Json;
@@ -73,9 +75,12 @@ public class CartChangeFeedProcessor : IHostedService
                 {
                     isChangeFeed = true,
                     userName = cart.userName,
-                    items = cart.items,
+                    items = cart.items ?? new List<CartItem>(),
                 };
-                Console.WriteLine($"Change detected: {JsonConvert.SerializeObject(cart)}");
+
+                Console.WriteLine($"Change detected for user: {cart.userName}");
+                Console.WriteLine($"Cart items count: {cart.items?.Count ?? 0}");
+
                 await _httpClient.PostAsJsonAsync(
                     "http://localhost:3000/api/cartChange",
                     payload,

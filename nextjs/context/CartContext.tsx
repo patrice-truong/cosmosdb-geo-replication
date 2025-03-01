@@ -1,15 +1,17 @@
 // app/context/CartContext.tsx
+
 'use client'
 
 export const dynamic = 'force-dynamic' // Ensure dynamic rendering
 
-import { api_url, socket_url, userName } from '@/models/constants'
+import { api_url, userName } from '@/models/constants'
 import { createContext, useContext, useEffect, useState } from 'react'
 
 import { Cart } from '@/models/cart'
 import { CartContextType } from '@/models/cartContextType'
 import { CartItem } from '@/models/cartItem'
 import { io } from 'socket.io-client'
+import { socket_url } from '@/models/constants'
 
 export const CartContext = createContext<CartContextType | undefined>(undefined)
 const prefix = '/context/CartContext.tsx'
@@ -59,6 +61,14 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
       }
     })
 
+    socketInstance.on('cartDeleted', async data => {
+      console.log('Cart deleted received from socket:', data)
+      if (data.userName === userName) {
+        setIsSocketUpdate(true) // Set flag before updating items
+        setItems([])
+      }
+    })
+
     socketInstance.on('disconnect', () => {
       console.log('Disconnected - attempting reconnect')
       socketInstance.connect()
@@ -82,20 +92,32 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
 
     const storeCart = async () => {
       try {
-        const cart: Cart = {
-          userName: userName,
-          items: items
-        }
-        // Only store if not a socket update
-        if (!isSocketUpdate) {
+        if (items.length === 0) {
+          // Delete the cart when it becomes empty
+          await fetch(`${api_url}/api/cart?userName=${userName}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Client-Update': 'true'
+            }
+          })
+        } else {
+          const cart: Cart = {
+            userName: userName,
+            items: items
+          }
           await storeCartInCosmosDB(cart)
         }
       } catch (error) {
-        console.error('Error storing cart:', error)
+        console.error('Error managing cart:', error)
       }
     }
-    // Remove the items.length check to allow empty cart updates
+
+    // Always store cart updates, even when empty
     storeCart()
+
+    // Reset isSocketUpdate after processing
+    setIsSocketUpdate(false)
   }, [items, isSocketUpdate])
 
   const addItem = (newItem: Omit<CartItem, 'quantity'>) => {
@@ -142,14 +164,17 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Client-Update': 'true' // Add this header to identify client updates
+          'X-Client-Update': 'true'
         },
         body: JSON.stringify(cart)
       })
+      return await response.json()
     } catch (error) {
       console.error('Error storing cart in Cosmos DB:', error)
+      throw error
     }
   }
+
   return (
     <CartContext.Provider
       value={{ items, addItem, removeItem, updateQuantity, clearCart }}
