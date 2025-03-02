@@ -58,8 +58,8 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
       }
     })
 
-    socket.on('cartDeleted', async data => {
-      console.log('Cart deleted received from socket:', data)
+    socket.on('cartEmpty', async data => {
+      console.log('cartEmpty received from socket:', data)
       if (data.userName === userName) {
         setIsSocketUpdate(true) // Set flag before updating items
         setItems([])

@@ -1,4 +1,4 @@
-// app/api/cartIsEmpty/route.ts
+// app/api/cartEmpty/route.ts
 
 import { NextResponse } from 'next/server'
 import { io } from 'socket.io-client'
@@ -25,10 +25,7 @@ export async function POST (request: Request) {
       let hasResponded = false
 
       socket.on('connect', () => {
-        console.log(
-          '[socket connect] Sending cart deleted:',
-          JSON.stringify(data)
-        )
+        console.log('[socket connect] Sending cartEmpty:', JSON.stringify(data))
         socket.emit('cartEmpty', data)
         // Resolve immediately after sending
         if (!hasResponded) {

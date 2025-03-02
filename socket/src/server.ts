@@ -21,12 +21,12 @@ const io = new Server(httpServer, {
 console.log('Socket.IO server created')
 
 io.on('connection', (socket: Socket) => {
-  console.log('=== New Client Connection ===')
-  console.log('Socket ID:', socket.id)
-  console.log('Client IP:', socket.handshake.address)
+  console.log(
+    `=== Client Connected: Client IP: ${socket.handshake.address}, Socket ID: ${socket.id} ===`
+  )
 
-  socket.emit('test', { message: 'Hello from Socket.IO server!' })
-  console.log('Test message sent to client')
+  // socket.emit('test', { message: 'Hello from Socket.IO server!' })
+  // console.log('Test message sent to client')
 
   socket.on('message', (data: string) => {
     console.log('=== Message Received ===')
@@ -44,9 +44,16 @@ io.on('connection', (socket: Socket) => {
     console.log('cartChange broadcasted to all clients')
   })
 
+  socket.on('cartEmpty', (data: string) => {
+    console.log('=== cartEmpty Received ===')
+    console.log('From socket:', socket.id)
+    console.log('Message content:', data)
+    io.emit('cartEmpty', data)
+    console.log('cartEmpty broadcasted to all clients')
+  })
+
   socket.on('disconnect', () => {
-    console.log('=== Client Disconnected ===')
-    console.log('Socket ID:', socket.id)
+    console.log(`=== Client Disconnected: Socket ID: ${socket.id} ===`)
   })
 })
 
