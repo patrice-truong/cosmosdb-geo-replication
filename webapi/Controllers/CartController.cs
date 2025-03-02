@@ -3,6 +3,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Cosmos;
+using Newtonsoft.Json;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -39,15 +40,11 @@ public class CartController : ControllerBase
     [HttpPost()]
     public async Task<IActionResult> StoreCart([FromBody] Cart cart)
     {
-        _logger.LogInformation(
-            $"Received cart update. Headers: {string.Join(", ", Request.Headers.Select(h => $"{h.Key}={h.Value.ToString()}"))}"
-        );
+        // _logger.LogInformation(
+        //     $"Received cart update. Headers: {string.Join(", ", Request.Headers.Select(h => $"{h.Key}={h.Value.ToString()}"))}"
+        // );
 
-        if (Request.Headers.ContainsKey("X-Change-Feed-Operation"))
-        {
-            _logger.LogInformation("Skipping change feed originated request");
-            return Ok();
-        }
+        _logger.LogInformation($"[CartController::StoreCart]: {JsonConvert.SerializeObject(cart)}");
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -71,12 +68,6 @@ public class CartController : ControllerBase
     public async Task<IActionResult> DeleteCart([FromQuery] string userName)
     {
         _logger.LogInformation($"Deleting cart for user: {userName}");
-
-        if (Request.Headers.ContainsKey("X-Change-Feed-Operation"))
-        {
-            _logger.LogInformation("Skipping change feed originated request");
-            return Ok();
-        }
 
         var stopwatch = Stopwatch.StartNew();
 

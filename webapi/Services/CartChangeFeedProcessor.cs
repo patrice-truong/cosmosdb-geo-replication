@@ -80,17 +80,16 @@ public class CartChangeFeedProcessor : IHostedService
 
                 Console.WriteLine($"Change detected for user: {cart.userName}");
                 Console.WriteLine($"Cart items count: {cart.items?.Count ?? 0}");
-
-                await _httpClient.PostAsJsonAsync(
-                    "http://localhost:3000/api/cartChange",
-                    payload,
-                    cancellationToken
-                );
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Failed to send cart change notification: {ex.Message}");
             }
         }
+        await _httpClient.PostAsJsonAsync(
+            "http://localhost:3000/api/cartChange",
+            changes,
+            cancellationToken
+        );
     }
 }
