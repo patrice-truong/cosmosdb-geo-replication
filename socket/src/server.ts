@@ -36,6 +36,14 @@ io.on('connection', (socket: Socket) => {
     console.log('Message broadcasted to all clients')
   })
 
+  socket.on('cartChange', (data: string) => {
+    console.log('=== CartChange Received ===')
+    console.log('From socket:', socket.id)
+    console.log('Message content:', data)
+    io.emit('cartChange', data)
+    console.log('cartChange broadcasted to all clients')
+  })
+
   socket.on('disconnect', () => {
     console.log('=== Client Disconnected ===')
     console.log('Socket ID:', socket.id)

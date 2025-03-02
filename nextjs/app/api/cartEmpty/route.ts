@@ -12,7 +12,9 @@ export async function POST (request: Request) {
     console.log('[cartEmpty event received]:', JSON.stringify(data))
 
     const socket = io(socket_url, {
-      path: '/api/socket'
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
     })
 
     socket.on('connect_error', error => {

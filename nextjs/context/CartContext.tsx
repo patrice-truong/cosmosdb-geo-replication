@@ -40,28 +40,25 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
   }, [isSocketUpdate])
 
   useEffect(() => {
-    const socketInstance = io(
-      socket_url,
+    const socket = io(socket_url, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
+    })
 
-      {
-        path: '/api/socket',
-        addTrailingSlash: false
-      }
-    )
-
-    socketInstance.on('connect', () => {
+    socket.on('connect', () => {
       console.log('Connected')
     })
 
-    socketInstance.on('cartUpdate', async data => {
-      console.log('Cart update received from socket:', data)
+    socket.on('cartChange', async data => {
+      console.log('CartChange received from socket:', data)
       if (data.userName === userName) {
         setIsSocketUpdate(true) // Set flag before updating items
         setItems(data.items)
       }
     })
 
-    socketInstance.on('cartDeleted', async data => {
+    socket.on('cartDeleted', async data => {
       console.log('Cart deleted received from socket:', data)
       if (data.userName === userName) {
         setIsSocketUpdate(true) // Set flag before updating items
@@ -69,21 +66,16 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
       }
     })
 
-    socketInstance.on('disconnect', () => {
+    socket.on('disconnect', () => {
       console.log('Disconnected - attempting reconnect')
-      socketInstance.connect()
+      socket.connect()
     })
 
-    socketInstance.on('connect_error', async err => {
-      console.log(`connect_error due to ${err.message}`)
-      await fetch('/api/socket')
-    })
-
-    setSocket(socketInstance)
+    setSocket(socket)
 
     // Cleanup function to disconnect socket when component unmounts
     return () => {
-      socketInstance.disconnect()
+      socket.disconnect()
     }
   }, []) // Add items as dependency
 
