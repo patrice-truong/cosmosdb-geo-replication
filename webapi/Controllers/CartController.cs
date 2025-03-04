@@ -48,45 +48,7 @@ public class CartController : ControllerBase
 
         var stopwatch = Stopwatch.StartNew();
 
-        if (cart.items == null || cart.items.Count == 0)
-        {
-            // Handle empty cart as a deletion
-            await _cartService.DeleteCartAsync(cart.userName);
-        }
-        else
-        {
-            await _cartService.CreateOrUpdateCartAsync(cart);
-        }
-
-        stopwatch.Stop();
-        var duration = stopwatch.ElapsedMilliseconds;
-
-        return Ok(new { duration });
-    }
-
-    [HttpDelete()]
-    public async Task<IActionResult> DeleteCart([FromQuery] string userName)
-    {
-        _logger.LogInformation($"Deleting cart for user: {userName}");
-
-        var stopwatch = Stopwatch.StartNew();
-
-        // Delete from Cosmos DB
-        await _cartService.DeleteCartAsync(userName);
-
-        // Notify about empty cart
-        using (var httpClient = new HttpClient())
-        {
-            var payload = new
-            {
-                isChangeFeed = false,
-                userName = userName,
-                items = new List<CartItem>(),
-                isEmpty = true,
-                operationType = "Delete",
-            };
-            await httpClient.PostAsJsonAsync("http://localhost:3000/api/cartEmpty", payload);
-        }
+        await _cartService.CreateOrUpdateCartAsync(cart);
 
         stopwatch.Stop();
         var duration = stopwatch.ElapsedMilliseconds;
