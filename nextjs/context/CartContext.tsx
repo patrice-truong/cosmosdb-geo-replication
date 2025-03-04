@@ -40,8 +40,7 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
   }, []) // Remove isSocketUpdate dependency
 
   useEffect(() => {
-    console.log(`[***************** ${prefix}::useEffect] *****************`)
-    const socket = io('http://127.0.0.1:8000', {
+    const socket = io(socket_url, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000
@@ -86,10 +85,8 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
   }, []) // Add items as dependency
 
   useEffect(() => {
-    if (!items.length) return; // Skip empty items
-
     console.log('Items state changed:', items)
-    let isStale = false;
+    let isStale = false
 
     const storeCart = async () => {
       if (isSocketUpdate) {
@@ -98,14 +95,25 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
         return
       }
 
-      if (isStale) return; // Skip if component updated
+      if (isStale) return // Skip if component updated
 
       try {
-        const cart: Cart = {
-          userName: userName,
-          items: items
+        if (items.length === 0) {
+          console.log('Deleting empty cart from Cosmos DB')
+          await fetch(`${api_url}/api/cart?userName=${userName}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Client-Update': 'true'
+            }
+          })
+        } else {
+          const cart: Cart = {
+            userName: userName,
+            items: items
+          }
+          await storeCartInCosmosDB(cart)
         }
-        await storeCartInCosmosDB(cart)
       } catch (error) {
         console.error('Error managing cart:', error)
       }
@@ -114,9 +122,10 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
     storeCart()
 
     return () => {
-      isStale = true;
+      isStale = true
     }
   }, [items])
+
   const addItem = (newItem: Omit<CartItem, 'quantity'>) => {
     setItems(currentItems => {
       const existingItem = currentItems.find(item => item.id === newItem.id)
