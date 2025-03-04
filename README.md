@@ -14,6 +14,7 @@ Products added to the shopping cart in the East US 2 region automatically appear
 - 2 virtual machines, one in East US 2, the other one in Australia East
 - An Azure Storage account to store product images
 - an Azure Cosmos DB NoSQL database that stores the product catalog
+- a socket server for real-time notifications
 
 ![Architecture Diagram](assets/architecture.png)
 
@@ -111,7 +112,6 @@ For more details, refer to the documentation: https://learn.microsoft.com/en-us/
 ![Storage - Encryption](assets/storage-encryption.png)
 
 ![Storage - Validation](assets/storage-validation.png)
-
 
 **Windows 11 Virtual machines creation**
 
@@ -257,10 +257,12 @@ $PrincipalId = "<principal-id>"   # id of the virtual machine in Entra ID
 - Select Access Control (IAM) in the menu
 
 ![Storage - Access Control](assets/storage-access-control.png)
+
 - Click on "Add role assignment"
 - In the filter textbox, type "Storage Blob Data Contributor"
 
 ![Storage - Blob Data contributor](assets/storage-blob-data-contributor.png)
+
 - Click on "Members"
 - Select "Managed Identity"
 - In the listbox, select "Virtual machines"
@@ -280,7 +282,6 @@ $PrincipalId = "<principal-id>"   # id of the virtual machine in Entra ID
 ![Storage - Upload files](assets/storage-upload-files.png)
 
 ![Storage - Files uploaded](assets/storage-files-uploaded.png)
-
 
 18. In order for the application in the Australia VM to read data from the closest Cosmos DB replica, we need to make a few changes, **on the "Australia East" virtual machine only**:
 
@@ -311,9 +312,11 @@ cd webapi
 dotnet build
 ```
 
-![Dotnet build](assets/dotnet_build.png)
+![Dotnet build](assets/dotnet_build.png) 18. On your secondary region VM (Australia East), modify the .env file with the IP address of the socket server in your primary region (East US 2)
 
-18. Build nextjs frontend project
+![socket_server_ip](assets/socket_server_ip.png)
+
+19. Build nextjs frontend project
 
 ```sh
 cd nextjs
@@ -354,6 +357,13 @@ In this section, we'll read the products catalog from the populate/cosmosDB/cata
 
 1. Start each VM
 2. Remote desktop into each VM
+3. On your primary region VM, start the socket server
+
+```sh
+cd socket
+npx ts-node src/server.ts
+```
+
 3. On each VM, start the back end and the front end projects
 
 - .NET webapi backend:
@@ -369,4 +379,4 @@ In this section, we'll read the products catalog from the populate/cosmosDB/cata
 2. Azure Cosmos DB automatically replicates data to the Cosmos DB Australia East replica
 3. On the "Australia East" VM, navigate to http://localhost:3000. You should now see one product in the shopping cart of the Australia East VM.
 
-![Demo](assets/demo.png)
+![Demo](assets/demo.gif)
