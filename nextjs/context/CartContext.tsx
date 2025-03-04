@@ -48,30 +48,25 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
 
     socket.on('cartChange', data => {
       console.log(`CartChange received from socket: `, data)
-
-      // Find the matching cart data
-      const userCart = data.find(
-        (item: { userName: string }) => item.userName === userName
-      )
-      if (userCart) {
-        console.log('Found matching cart:', userCart.items)
-        // Batch the updates together
-        Promise.resolve().then(() => {
-          setIsSocketUpdate(true)
-          setItems(userCart.items)
-        })
+      if (Array.isArray(data)) {
+        // Find the matching cart data
+        const userCart = data.find(
+          (item: { userName: string }) => item.userName === userName
+        )
+        if (userCart) {
+          console.log('Found matching cart:', userCart.items)
+          Promise.resolve().then(() => {
+            setIsSocketUpdate(true)
+            setItems(userCart.items)
+          })
+        }
       }
     })
 
     socket.on('cartEmpty', data => {
       console.log('cartEmpty received from socket:', data)
-      // Find the matching cart data
-      const userCart = data.find(
-        (item: { userName: string }) => item.userName === userName
-      )
-      if (userCart) {
-        console.log('Found matching cart:', userCart.items)
-        // Batch the updates together
+      if (data.userName === userName) {
+        console.log('Emptying cart for user:', userName)
         Promise.resolve().then(() => {
           setIsSocketUpdate(true)
           setItems([])
