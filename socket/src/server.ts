@@ -39,7 +39,7 @@ io.on('connection', (socket: Socket) => {
   socket.on('cartChange', (data: string) => {
     console.log('=== CartChange Received ===')
     console.log('From socket:', socket.id)
-    console.log('Message content:', data)
+    console.log('Message content:', JSON.stringify(data))
     io.emit('cartChange', data)
     console.log('cartChange broadcasted to all clients')
   })

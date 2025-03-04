@@ -25,47 +25,53 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
     async function loadCart () {
       try {
         const savedCart = await loadCartFromCosmosDB(userName)
-        if (savedCart && !isSocketUpdate) {
-          // Only update if not from socket
-          const items = savedCart.data.items
-          console.log(`[${prefix}::loadCart]`, items)
-          setItems(items)
+        if (savedCart?.data?.items) {
+          console.log(`[${prefix}::loadCart]`, savedCart.data.items)
+          setItems(savedCart.data.items)
         }
       } catch (error) {
         console.error('Error loading cart:', error)
       }
     }
 
-    loadCart()
-  }, [isSocketUpdate])
+    if (!isSocketUpdate) {
+      loadCart()
+    }
+  }, []) // Remove isSocketUpdate dependency
 
   useEffect(() => {
-    const socket = io(socket_url, {
+    console.log(`[***************** ${prefix}::useEffect] *****************`)
+    const socket = io('http://127.0.0.1:8000', {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
       reconnectionDelay: 1000
     })
 
-    socket.on('connect', () => {
-      console.log('Connected')
-    })
+    socket.on('cartChange', data => {
+      console.log(`CartChange received from socket: `, data)
 
-    socket.on('cartChange', async data => {
-      console.log('CartChange received from socket:', data)
-      if (data.userName === userName) {
-        setIsSocketUpdate(true) // Set flag before updating items
-        setItems(data.items)
+      // Find the matching cart data
+      const userCart = data.find(
+        (item: { userName: string }) => item.userName === userName
+      )
+      if (userCart) {
+        console.log('Found matching cart:', userCart.items)
+        // Batch the updates together
+        Promise.resolve().then(() => {
+          setIsSocketUpdate(true)
+          setItems(userCart.items)
+        })
       }
     })
 
-    socket.on('cartEmpty', async data => {
+    socket.on('cartEmpty', data => {
       console.log('cartEmpty received from socket:', data)
       if (data.userName === userName) {
-        setIsSocketUpdate(true) // Set flag before updating items
+        setIsSocketUpdate(true)
+        console.log('Emptying cart from socket')
         setItems([])
       }
     })
-
     socket.on('disconnect', () => {
       console.log('Disconnected - attempting reconnect')
       socket.connect()
@@ -80,38 +86,37 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
   }, []) // Add items as dependency
 
   useEffect(() => {
+    if (!items.length) return; // Skip empty items
+
     console.log('Items state changed:', items)
+    let isStale = false;
 
     const storeCart = async () => {
+      if (isSocketUpdate) {
+        console.log('Skipping Cosmos DB update for socket-initiated change')
+        setIsSocketUpdate(false)
+        return
+      }
+
+      if (isStale) return; // Skip if component updated
+
       try {
-        if (items.length === 0) {
-          // Delete the cart when it becomes empty
-          await fetch(`${api_url}/api/cart?userName=${userName}`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Client-Update': 'true'
-            }
-          })
-        } else {
-          const cart: Cart = {
-            userName: userName,
-            items: items
-          }
-          await storeCartInCosmosDB(cart)
+        const cart: Cart = {
+          userName: userName,
+          items: items
         }
+        await storeCartInCosmosDB(cart)
       } catch (error) {
         console.error('Error managing cart:', error)
       }
     }
 
-    // Always store cart updates, even when empty
     storeCart()
 
-    // Reset isSocketUpdate after processing
-    setIsSocketUpdate(false)
-  }, [items, isSocketUpdate])
-
+    return () => {
+      isStale = true;
+    }
+  }, [items])
   const addItem = (newItem: Omit<CartItem, 'quantity'>) => {
     setItems(currentItems => {
       const existingItem = currentItems.find(item => item.id === newItem.id)

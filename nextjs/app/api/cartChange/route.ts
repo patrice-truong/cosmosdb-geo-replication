@@ -24,10 +24,7 @@ export async function POST (request: Request) {
       let hasResponded = false
 
       socket.on('connect', () => {
-        console.log(
-          '[socket connect] Sending cart change:',
-          JSON.stringify(data)
-        )
+        console.log('[socket] Emit cartChange:', JSON.stringify(data))
         socket.emit('cartChange', data)
         // Resolve immediately after sending
         if (!hasResponded) {
