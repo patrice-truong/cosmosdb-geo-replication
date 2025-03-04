@@ -49,7 +49,6 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
     socket.on('cartChange', data => {
       console.log(`CartChange received from socket: `, data)
       if (Array.isArray(data)) {
-        // Find the matching cart data
         const userCart = data.find(
           (item: { userName: string }) => item.userName === userName
         )
@@ -57,22 +56,12 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
           console.log('Found matching cart:', userCart.items)
           Promise.resolve().then(() => {
             setIsSocketUpdate(true)
-            setItems(userCart.items)
+            setItems(userCart.items || [])
           })
         }
       }
     })
 
-    socket.on('cartEmpty', data => {
-      console.log('cartEmpty received from socket:', data)
-      if (data.userName === userName) {
-        console.log('Emptying cart for user:', userName)
-        Promise.resolve().then(() => {
-          setIsSocketUpdate(true)
-          setItems([])
-        })
-      }
-    })
     socket.on('disconnect', () => {
       console.log('Disconnected - attempting reconnect')
       socket.connect()
@@ -80,11 +69,10 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
 
     setSocket(socket)
 
-    // Cleanup function to disconnect socket when component unmounts
     return () => {
       socket.disconnect()
     }
-  }, []) // Add items as dependency
+  }, [])
 
   useEffect(() => {
     console.log('Items state changed:', items)
@@ -97,25 +85,14 @@ export function CartProvider ({ children }: { children: React.ReactNode }) {
         return
       }
 
-      if (isStale) return // Skip if component updated
+      if (isStale) return
 
       try {
-        if (items.length === 0) {
-          console.log('Deleting empty cart from Cosmos DB')
-          await fetch(`${api_url}/api/cart?userName=${userName}`, {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Client-Update': 'true'
-            }
-          })
-        } else {
-          const cart: Cart = {
-            userName: userName,
-            items: items
-          }
-          await storeCartInCosmosDB(cart)
+        const cart: Cart = {
+          userName: userName,
+          items: items
         }
+        await storeCartInCosmosDB(cart)
       } catch (error) {
         console.error('Error managing cart:', error)
       }
