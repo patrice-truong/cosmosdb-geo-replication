@@ -1,8 +1,0 @@
-{
-  "id": "patrice.truong@gmail.com",
-  "userName": "patrice.truong@gmail.com",
-  "items": [
-    { "id": 3, "name": "Alpine Fusion Goggles", "price": 79.99, "quantity": 1, "image": null, "description": "Enhance your skiing experience with the Alpine Fusion Goggles from WildRunner. These goggles offer full UV protection and anti-fog lenses to keep your vision clear on the slopes. With their stylish silver frame and orange lenses, you'll stand out from the crowd. Adjustable straps ensure a secure fit, while the soft foam padding provides comfort all day long.", "type": "Ski/boarding", "brand": "WildRunner" },
-    { "id": 2, "name": "Summit Pro Harness", "price": 89.99, "quantity": 1, "image": null, "description": "Conquer new heights with the Summit Pro Harness by Gravitator. This lightweight and durable climbing harness features adjustable leg loops and waist belt for a customized fit. With its vibrant blue color, you'll look stylish while maneuvering difficult routes. Safety is a top priority with a reinforced tie-in point and strong webbing loops.", "type": "Climbing", "brand": "Gravitator" }
-  ]
-}
