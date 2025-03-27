@@ -93,10 +93,6 @@ export default function AIAssistantDrawer() {
   };
 
   const handleOpenChange = (open: boolean) => {
-    // Only allow closing through the X button
-    if (!open && isOpen) {
-      return;
-    }
     setIsOpen(open);
     if (open) handleDrawerOpen();
   };
@@ -112,7 +108,15 @@ export default function AIAssistantDrawer() {
           <Bot className="h-6 w-6" />
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-[400px] sm:w-[540px]">
+      <SheetContent 
+        className="w-[400px] sm:w-[540px]"
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement;
+          if (!target.closest('[data-state="closed"]')) {
+            e.preventDefault();
+          }
+        }}
+      >
         <SheetHeader>
           <SheetTitle>AI Shopping Assistant</SheetTitle>
         </SheetHeader>
