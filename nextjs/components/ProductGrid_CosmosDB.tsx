@@ -67,7 +67,7 @@ export default function ProductGrid_CosmosDB () {
       id: Number(product.id) // Convert id to number
     }
     addItem(cartItem)
-    router.push('/cart')
+    // router.push('/cart')
   }
 
   if (loading) {
