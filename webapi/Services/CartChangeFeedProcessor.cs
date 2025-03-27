@@ -87,7 +87,7 @@ public class CartChangeFeedProcessor : IHostedService
             }
         }
         await _httpClient.PostAsJsonAsync(
-            "http://localhost:3000/api/cartChange",
+            "http://localhost:3001/api/cartChange",
             changes,
             cancellationToken
         );

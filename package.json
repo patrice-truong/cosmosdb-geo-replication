@@ -1,0 +1,20 @@
+{
+  "name": "cosmosdb-geo-replication",
+  "version": "1.0.0",
+  "description": "This repository contains a project for setting up and demonstrating geo-replication with Azure Cosmos DB. The project is divided into 2 parts:",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/patrice-truong/cosmosdb-geo-replication.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/patrice-truong/cosmosdb-geo-replication/issues"
+  },
+  "homepage": "https://github.com/patrice-truong/cosmosdb-geo-replication#readme"
+}

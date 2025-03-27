@@ -375,8 +375,8 @@ npx ts-node src/server.ts
 
 **Demo steps:**
 
-1. On the "East US" VM, navigate to http://localhost:3000. Add a product to the shopping cart
+1. On the "East US" VM, navigate to http://localhost:4000. Add a product to the shopping cart
 2. Azure Cosmos DB automatically replicates data to the Cosmos DB Australia East replica
-3. On the "Australia East" VM, navigate to http://localhost:3000. You should now see one product in the shopping cart of the Australia East VM.
+3. On the "Australia East" VM, navigate to http://localhost:4000. You should now see one product in the shopping cart of the Australia East VM.
 
 ![Demo](assets/demo.gif)
