@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { Input } from "@/components/ui/input";
-import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
+import { createMCPClient } from "@/lib/mcp-client";
 import { useState } from "react";
 
 type Message = {
@@ -32,36 +32,9 @@ export default function AIAssistantDrawer() {
   const handleDrawerOpen = async () => {
     if (client) return; // Already initialized
 
-    const newClient = new Client(
-      {
-        name: "cosmosdb-client",
-        version: "1.0.0"
-      },
-      {
-        capabilities: {
-          prompts: {},
-          resources: {},
-          tools: {}
-        }
-      }
-    );
-
-    const transport = new SSEClientTransport(
-      new URL("/sse", "http://localhost:3001/"),
-      {
-        requestInit: {
-          headers: {
-            'Content-Type': 'text/event-stream',
-          }
-        }
-      }
-    );
-
-    try {
-      await newClient.connect(transport);
-      setClient(newClient);
-    } catch (e) {
-      console.error('Failed to connect to MCP server:', e);
+    const cosmosDBMcpClient = await createMCPClient();
+    if (cosmosDBMcpClient) {
+      setClient(cosmosDBMcpClient);
     }
   };
 
@@ -74,22 +47,74 @@ export default function AIAssistantDrawer() {
     setMessage('');
 
     try {
-      const result = await client.callTool({
-        name: "getProducts",
-        arguments: {}
+      const toolsData = await client.listTools();
+
+      // transform mcp tools into openai format
+      const openAITools = toolsData.tools.map((tool) => ({
+        type: "function" as const,
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.inputSchema,
+          strict: false,
+        },
+      }));
+      console.log("openAI tools", openAITools);
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          conversationHistory: messages,
+          tools: openAITools,
+        }),
       });
-      console.log(result);
-      setTimeout(() => {
+
+      if (!response.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const r = await response.json();
+      const result = JSON.parse(r.content);
+
+      // Handle tool calls if present
+      if (result.choices[0].finish_reason === 'tool_calls') {
+        const toolCalls = result.choices[0].message.tool_calls;
+        for (const toolCall of toolCalls) {
+          // console.log("function name: ", toolCall.function.name);
+          // console.log("args", JSON.parse(toolCall.function.arguments));
+          const toolResult = await client.callTool({
+            name: toolCall.function.name,
+            arguments: JSON.parse(toolCall.function.arguments)
+          });
+
+          // Add tool response as assistant message
+          const toolResponseMessage: Message = {
+            role: 'assistant',
+            content: JSON.stringify(toolResult)
+          };
+          setMessages(prev => [...prev, toolResponseMessage]);
+        }
+      } else if (result.choices[0].message.content) {
+
+        // Handle normal message response
         const assistantMessage: Message = {
           role: 'assistant',
-          content: JSON.stringify(result)
+          content: result.choices[0].message.content
         };
         setMessages(prev => [...prev, assistantMessage]);
-      }, 1000);
-      } catch (e) {
+      }
+    } catch (e) {
       console.error(e);
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error processing your request.'
+      };
+      setMessages(prev => [...prev, errorMessage]);
     }
-
   };
 
   const handleOpenChange = (open: boolean) => {

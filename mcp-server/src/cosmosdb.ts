@@ -4,7 +4,7 @@ import { DefaultAzureCredential } from '@azure/identity'
 
 const sourceFile = 'src/cosmosdb.ts'
 
-export function validateEnvironmentVariables() {
+export function validateEnvironmentVariables () {
   const required = [
     'AZURE_COSMOSDB_NOSQL_ENDPOINT',
     'AZURE_COSMOSDB_NOSQL_DATABASE',
@@ -39,8 +39,12 @@ export const initializeCosmosDB = async () => {
 
   const credential = new DefaultAzureCredential()
 
-  console.debug(`[${sourceFile}::initializeCosmosDB] Cosmos DB endpoint: ${endpoint}`)
-  console.debug(`[${sourceFile}::initializeCosmosDB] Cosmos DB container: ${productsContainerId}`)
+  console.debug(
+    `[${sourceFile}::initializeCosmosDB] Cosmos DB endpoint: ${endpoint}`
+  )
+  console.debug(
+    `[${sourceFile}::initializeCosmosDB] Cosmos DB container: ${productsContainerId}`
+  )
 
   const client = new CosmosClient({
     endpoint: endpoint,
