@@ -6,9 +6,6 @@ import { CosmosDBMcpServer } from './cosmosdb-mcp-server'
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'
 import cors from 'cors'
 
-const host = process.env.HOST || '127.0.0.1'
-const port = parseInt(process.env.PORT || '3001')
-
 const app = express()
 
 // Add CORS middleware

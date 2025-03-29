@@ -1,7 +1,8 @@
-import { Container, SqlQuerySpec } from '@azure/cosmos'
+import { Container, JSONValue, SqlQuerySpec } from '@azure/cosmos'
 import { initializeCosmosDB, validateEnvironmentVariables } from './cosmosdb'
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
+import { getEmbeddingsAsync } from './aoai'
 import { z } from 'zod'
 
 export class CosmosDBMcpServer {
@@ -24,19 +25,59 @@ export class CosmosDBMcpServer {
     this.initializeTools()
   }
 
-  private async getProducts (container: Container) {
+  // private async getProducts (container: Container) {
+  //   const startTime = Date.now()
+  //   try {
+  //     const query = `SELECT c.id, c.type, c.brand, c.name, c.description, c.price FROM c`
+  //     const sqlQuerySpec: SqlQuerySpec = {
+  //       query: query
+  //     }
+  //     const { resources: items } = await container.items
+  //       .query(sqlQuerySpec)
+  //       .fetchAll()
+
+  //     const duration = Date.now() - startTime
+  //     console.debug(`[${this.sourceFile}::getProducts] ${duration} ms`)
+
+  //     return {
+  //       data: items,
+  //       statusCode: 200,
+  //       duration: duration
+  //     }
+  //   } catch (error) {
+  //     console.timeEnd('getProducts')
+  //     return {
+  //       error: 'Error fetching products from Cosmos DB: ' + error,
+  //       statusCode: 500
+  //     }
+  //   }
+  // }
+
+  private async searchProducts (container: Container, q: string) {
     const startTime = Date.now()
     try {
-      const query = `SELECT c.id, c.type, c.brand, c.name, c.description, c.price FROM c`
+      const embeddings = await getEmbeddingsAsync(q)
+      if (!embeddings) {
+        throw new Error('Failed to generate embeddings')
+      }
+      console.debug(`[${this.sourceFile}::searchProducts] embeddings: ${embeddings}`)
+
       const sqlQuerySpec: SqlQuerySpec = {
-        query: query
+        query: `
+      SELECT TOP 10 
+        c.id, c.type, c.brand, c.name, c.description, c.price,
+        VectorDistance(c.embedding, @queryEmbedding) as similarity
+        FROM c
+        ORDER BY VectorDistance(c.embedding, @queryEmbedding) 
+      `,
+        parameters: [{ name: '@queryEmbedding', value: embeddings }]
       }
       const { resources: items } = await container.items
         .query(sqlQuerySpec)
         .fetchAll()
 
       const duration = Date.now() - startTime
-      console.debug(`[${this.sourceFile}::getProducts] ${duration} ms`)
+      console.debug(`[${this.sourceFile}::searchProducts] ${duration} ms`)
 
       return {
         data: items,
@@ -44,7 +85,7 @@ export class CosmosDBMcpServer {
         duration: duration
       }
     } catch (error) {
-      console.timeEnd('getProducts')
+      console.timeEnd('searchProducts')
       return {
         error: 'Error fetching products from Cosmos DB: ' + error,
         statusCode: 500
@@ -65,17 +106,20 @@ export class CosmosDBMcpServer {
     )
 
     this.server.tool(
-      'getProducts',
-      'Get products from the Azure Cosmos DB database',
-      {},
+      'searchProducts',
+      'Given a user query, search for matching products in the Azure Cosmos DB database',
+      {
+        query: z.string()
+      },
       async (args, extra) => {
         try {
           validateEnvironmentVariables()
           const { client, database, container } = await initializeCosmosDB()
-          const { data, statusCode, duration } = await this.getProducts(
-            container
+          const { data, statusCode, duration } = await this.searchProducts(
+            container,
+            args.query
           )
-          console.debug(`[${this.sourceFile}::getProducts] ${duration} ms`)
+          console.debug(`[${this.sourceFile}::searchProducts] ${duration} ms`)
           return {
             content: [
               {
@@ -90,7 +134,7 @@ export class CosmosDBMcpServer {
               {
                 type: 'text',
                 text: JSON.stringify({
-                  error: 'Error fetching products from Cosmos DB:' + error
+                  error: 'Error searching for products in Cosmos DB:' + error
                 })
               }
             ],

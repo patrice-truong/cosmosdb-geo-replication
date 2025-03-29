@@ -27,6 +27,7 @@ cache
 .env
 .venv
 no_commit
+appsettings.json
 
 Tags/
 tmp/
